@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->string('password_hash');
             $table->timestamp('last_login')->nullable();
             $table->json('settings')->nullable();
+            $table->rememberToken();
             $table->timestamps();
         });
     }
