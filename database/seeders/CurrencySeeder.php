@@ -10,6 +10,8 @@ class CurrencySeeder extends Seeder
 {
     public function run(): void
     {
+        DB::table('currencies')->delete();
+
         $json = File::get(database_path('seeders/currencies.json'));
         $data = json_decode($json, true);
 
@@ -20,7 +22,7 @@ class CurrencySeeder extends Seeder
                 'code' => $code,
                 'name' => $currency['name'],
                 'symbol' => $currency['symbol'] ?? null,
-                'country' => $currency['entity'] ?? null,
+                'country' => $currency['demonym'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
