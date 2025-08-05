@@ -157,3 +157,50 @@
         @apply bg-background text-foreground;
     }
 }
+.react-select__control {
+  @apply rounded-md border border-slate-300 py-1 pl-2 pr-4 shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none dark:bg-slate-700 dark:text-white;
+}
+.react-select__menu {
+  @apply bg-white dark:bg-slate-700;
+}
+.react-select__single-value {
+  @apply text-slate-900 dark:text-white;
+}
+.react-select__input {
+  @apply text-slate-900 dark:text-white;
+}
+.react-select__option--is-focused {
+  @apply bg-blue-100 dark:bg-blue-700;
+}
+.react-select__option--is-selected {
+  @apply bg-blue-500 text-white;
+}
+
+.react-select__input input {
+  @apply text-slate-900 dark:text-white;
+}
+.react-select__input input {
+  @apply text-slate-900 dark:text-white;
+  background-color: transparent !important; /* hindari override default */
+}
+.react-select__input-container input {
+  @apply text-slate-900 dark:text-white;
+  background-color: transparent !important; /* hindari override default */
+}
+
+.react-select__control {
+  @apply bg-white dark:bg-slate-800 text-slate-900 dark:text-white;
+}
+.react-select__single-value {
+  @apply text-slate-900 dark:text-white;
+}
+.react-select__placeholder {
+  @apply text-slate-400 dark:text-slate-400;
+}
+
+.react-select__input input {
+  @apply text-slate-900 dark:text-white;
+  opacity: 1 !important; /* ini penting */
+  background-color: transparent !important;
+}
+

@@ -1,197 +1,340 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { InputField, SelectField } from '@/components/form-fields';
+import { InputFieldColor } from '@/components/input-field-color';
+import { InputFieldCurrency } from '@/components/input-field-currency';
+import { Card, CardContent } from '@/components/ui/card';
+import Modal from '@/components/ui/modal';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import { Building2, Plus } from 'lucide-react';
-import React from 'react';
+import { Head, router, useForm } from '@inertiajs/react';
+import { Building2, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { FormEventHandler, useEffect, useState } from 'react';
 
-// --- Type Definitions ---
-
-// Defines the structure for a single bank account object.
-interface BankAccount {
+interface Account {
     id: number;
     name: string;
     balance: number;
-    monthlyIncome: number;
-    monthlyExpenses: number;
-    gradient: string;
-    icon: string;
-    description: string;
+    color: string | null;
+    order: number;
+    currency_id: number;
+    user_id: number;
 }
 
-// --- Breadcrumbs Configuration ---
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Accounts', href: '/accounts' }
+interface Currency {
+    id: number;
+    code: string;
+    name: string;
+}
+
+interface PageProps {
+    accounts: Account[];
+    currencies: Currency[];
+}
+
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Accounts', href: '/accounts' }];
+
+const colors = [
+    'from-blue-500 to-indigo-500',
+    'from-green-500 to-emerald-500',
+    'from-purple-500 to-fuchsia-500',
+    'from-orange-500 to-amber-500',
+    'from-pink-500 to-rose-500',
+    'from-red-500 to-rose-600',
+    'from-teal-500 to-cyan-500',
+    'from-yellow-400 to-orange-500',
+    'from-lime-400 to-green-600',
+    'from-sky-500 to-blue-600',
+    'from-indigo-500 to-violet-600',
+    'from-slate-500 to-slate-700',
+    'from-zinc-500 to-neutral-600',
+    'from-fuchsia-500 to-pink-600',
 ];
 
-export default function Accounts() {
-    // --- Component State & Data ---
-    const totalBalance = 16_456_400;
-    const totalBalanceExcluded = 265_426_400;
+const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 
-    // Helper function to format currency
-    const formatCurrency = (val: number): string => `${val.toLocaleString('id-ID', { minimumFractionDigits: 2 })} IDR`;
+const formatCurrency = (val: number, currencyCode = 'IDR') => `${val.toLocaleString('id-ID', { minimumFractionDigits: 2 })} ${currencyCode}`;
 
-    // Data for bank accounts, typed as an array of BankAccount objects.
-    const bankAccounts: BankAccount[] = [
-        {
-            id: 1,
-            name: 'Bank Jago',
-            balance: 9_950_000,
-            monthlyIncome: 10_000_000,
-            monthlyExpenses: 50_000,
-            gradient: 'from-purple-600 to-purple-700', // Jago's purple theme
-            icon: '🏦',
-            description: 'Primary Banking Account'
-        },
-        {
-            id: 2,
-            name: 'BCA',
-            balance: 248_970_000,
-            monthlyIncome: 248_970_000,
-            monthlyExpenses: 0,
-            gradient: 'from-blue-600 to-blue-700', // BCA's blue theme
-            icon: '💳', // Corrected Icon
-            description: 'Savings & Investment'
-        },
-        {
-            id: 3,
-            name: 'Gopay',
-            balance: 1_000_000,
-            monthlyIncome: 1_000_000,
-            monthlyExpenses: 0,
-            gradient: 'from-green-500 to-green-600', // Gopay's green theme
-            icon: '📱',
-            description: 'Digital Wallet'
-        },
-        {
-            id: 4,
-            name: 'Bank Mandiri',
-            balance: 5_506_400,
-            monthlyIncome: 5_506_400,
-            monthlyExpenses: 0,
-            gradient: 'from-yellow-500 to-orange-500', // Mandiri's gold/yellow theme
-            icon: '🏛️',
-            description: 'Business Account'
+export default function Accounts({ accounts, currencies }: PageProps) {
+    const [showForm, setShowForm] = useState(false);
+    const [formData, setFormData] = useState<Account | null>(null);
+
+    const sortedAccounts = [...accounts].sort((a, b) => a.order - b.order);
+
+    const handleReorder = (id: number, direction: 'up' | 'down') => {
+        router.post('/accounts/reorder', { id, direction }, { preserveScroll: true, preserveState: true });
+    };
+
+    const fetchAccount = async (id: number) => {
+        try {
+            const response = await fetch(`/accounts/${id}/edit`);
+            const result = await response.json();
+            setFormData(result.data);
+            setShowForm(true);
+        } catch (err) {
+            console.error('Failed to fetch account', err);
         }
-    ];
+    };
 
-    // --- Render ---
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Accounts" />
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
                 <div className="flex-1 p-4 sm:p-6 lg:p-8">
-                    {/* Header Section */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-12">
-                        <div className="flex items-center gap-4 mb-4 sm:mb-0">
-                            <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl shadow-lg">
-                                <Building2 className="w-8 h-8 text-white" />
+                    <div className="mb-12 flex flex-col items-start justify-between sm:flex-row sm:items-center">
+                        <div className="mb-4 flex items-center gap-4 sm:mb-0">
+                            <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 p-3 shadow-lg">
+                                <Building2 className="h-8 w-8 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                <h1 className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent">
                                     Accounts
                                 </h1>
-                                <p className="text-slate-600 dark:text-slate-400 mt-1">
-                                    Manage your financial accounts
-                                </p>
+                                <p className="mt-1 text-slate-600 dark:text-slate-400">Manage your financial accounts</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-xl shadow-lg">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                {bankAccounts.length} Active Accounts
-                            </span>
-                        </div>
                     </div>
 
-                    {/* Balance Summary Cards */}
-                    <div className="grid gap-6 lg:grid-cols-2 mb-8">
-                        <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden group bg-white dark:bg-slate-800">
-                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/10"></div>
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/20 rounded-full -translate-y-16 translate-x-16"></div>
-                            <CardContent className="p-8 text-center relative z-10">
-                                <div className="flex items-center justify-center gap-2 mb-4">
-                                    <div className="text-2xl">💰</div>
-                                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">
-                                        Total Balance
-                                    </h3>
-                                </div>
-                                <div className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
-                                    {formatCurrency(totalBalance)}
-                                </div>
-                                <div className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-                                    Active Accounts
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="border-0 shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden group bg-white dark:bg-slate-800">
-                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10"></div>
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-400/20 rounded-full -translate-y-16 translate-x-16"></div>
-                            <CardContent className="p-8 text-center relative z-10">
-                                <div className="flex items-center justify-center gap-2 mb-4">
-                                    <div className="text-2xl">📊</div>
-                                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">
-                                        Total Balance (excluded)
-                                    </h3>
-                                </div>
-                                <div className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                                    {formatCurrency(totalBalanceExcluded)}
-                                </div>
-                                <div className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
-                                    All Accounts
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Bank Account Cards List */}
                     <div className="space-y-4">
-                        {bankAccounts.map((account) => (
-                            <Card 
-                                key={account.id} 
-                                className={`border-0 shadow-lg bg-gradient-to-br ${account.gradient} text-white hover:shadow-xl transition-all duration-300 hover:scale-[1.01] rounded-2xl`}
-                            >
-                                <CardContent className="p-6">
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                        <div>
-                                            <h3 className="text-xl font-bold mb-2">{account.name}</h3>
-                                            <div className="text-3xl font-bold">
-                                                {formatCurrency(account.balance)}
+                        {sortedAccounts.map((account, index) => {
+                            const currency = currencies.find((c) => c.id === account.currency_id);
+                            const currencyCode = currency?.code || 'IDR';
+
+                            return (
+                                <Card
+                                    key={account.id}
+                                    className={`relative border-0 bg-gradient-to-br shadow-lg ${account.color ?? getRandomColor()} rounded-2xl text-white transition-all duration-300 hover:scale-[1.01] hover:shadow-xl`}
+                                >
+                                    <CardContent className="p-6">
+                                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                                            <div>
+                                                <h3 className="mb-2 text-xl font-bold">{account.name}</h3>
+                                                <div className="text-3xl font-bold text-slate-800 dark:text-white">
+                                                    {formatCurrency(account.balance, currencyCode)}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 self-start sm:self-center">
+                                                <button
+                                                    onClick={() => fetchAccount(account.id)}
+                                                    className="rounded-md bg-white/20 px-3 py-1 text-sm font-semibold hover:bg-white/30"
+                                                >
+                                                    Edit
+                                                </button>
+
+                                                {index > 0 && (
+                                                    <button
+                                                        onClick={() => handleReorder(account.id, 'up')}
+                                                        className="rounded-md bg-white/20 px-3 py-1 hover:bg-white/30"
+                                                    >
+                                                        <ChevronUp className="h-5 w-5" />
+                                                    </button>
+                                                )}
+                                                {index < sortedAccounts.length - 1 && (
+                                                    <button
+                                                        onClick={() => handleReorder(account.id, 'down')}
+                                                        className="rounded-md bg-white/20 px-3 py-1 hover:bg-white/30"
+                                                    >
+                                                        <ChevronDown className="h-5 w-5" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
-                                        <div className="text-left sm:text-right space-y-2">
-                                            <div className="text-sm opacity-90">
-                                                Income: {formatCurrency(account.monthlyIncome)}
-                                            </div>
-                                            <div className="text-sm opacity-90">
-                                                Expenses: {formatCurrency(account.monthlyExpenses)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
                     </div>
 
-                    {/* Add Account Button */}
                     <div className="mt-12 flex justify-center">
-                        <button className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-                            <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                        <button
+                            onClick={() => {
+                                setFormData(null);
+                                setShowForm(true);
+                            }}
+                            className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-4 font-bold text-white shadow-xl hover:scale-105 hover:from-blue-700 hover:to-purple-700"
+                        >
                             <div className="relative flex items-center gap-3">
-                                <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-180 transition-transform duration-300">
-                                    <Plus className="w-6 h-6" />
+                                <div className="rounded-lg bg-white/20 p-2">
+                                    <Plus className="h-6 w-6" />
                                 </div>
                                 <span className="text-lg">Add New Account</span>
                             </div>
-                            <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-white/20 rounded-full animate-pulse"></div>
-                            <div className="absolute -top-2 -left-2 w-4 h-4 bg-white/30 rounded-full animate-bounce"></div>
                         </button>
                     </div>
                 </div>
             </div>
+
+            <AccountFormModal
+                show={showForm}
+                initialData={formData ?? undefined}
+                currencies={currencies}
+                onClose={() => {
+                    setShowForm(false);
+                    setFormData(null);
+                }}
+            />
         </AppLayout>
+    );
+}
+function AccountFormModal({
+    initialData,
+    show,
+    onClose,
+    currencies,
+}: {
+    initialData?: Account;
+    show: boolean;
+    onClose: () => void;
+    currencies: Currency[];
+}) {
+    const isEdit = !!initialData;
+
+    const { data, setData, post, put, processing, reset, errors } = useForm({
+        name: '',
+        balance: 0,
+        currency_id: 1,
+        color: '',
+    });
+
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteInput, setDeleteInput] = useState('');
+
+    useEffect(() => {
+        if (initialData) {
+            setData({
+                name: initialData.name,
+                balance: initialData.balance,
+                currency_id: initialData.currency_id,
+                color: initialData.color ?? '',
+            });
+        } else {
+            reset();
+        }
+    }, [initialData]);
+
+    const selectedCurrency = currencies.find((c) => c.id === data.currency_id);
+    const currencyCode = selectedCurrency?.code || 'IDR';
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        const action = isEdit ? put : post;
+        const url = isEdit ? `/accounts/${initialData!.id}` : '/accounts';
+
+        action(url, {
+            preserveScroll: true,
+            onSuccess: () => {
+                reset();
+                onClose();
+            },
+        });
+    };
+
+    const confirmDelete = () => {
+        if (deleteInput === initialData?.name) {
+            router.delete(`/accounts/${initialData.id}`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    reset();
+                    setShowDeleteConfirm(false);
+                    onClose();
+                },
+            });
+        }
+    };
+
+    return (
+        <>
+            <Modal show={show} onClose={onClose} maxWidth="md">
+                <div className="p-6 text-slate-800 dark:text-slate-100">
+                    <h2 className="mb-4 text-xl font-semibold">{isEdit ? 'Edit Account' : 'Add New Account'}</h2>
+                    <form onSubmit={submit} className="space-y-4">
+                        <InputField
+                            label="Name"
+                            id="name"
+                            type="text"
+                            value={data.name}
+                            onChange={(e) => setData('name', e.target.value)}
+                            error={errors.name}
+                        />
+
+                        <SelectField
+                            label="Currency"
+                            value={data.currency_id}
+                            onChange={(val) => setData('currency_id', val ?? 0)}
+                            options={currencies.map((c) => ({ id: c.id, name: `${c.code} - ${c.name}` }))}
+                            error={errors.currency_id}
+                        />
+
+                        <InputFieldCurrency
+                            label="Initial Balance"
+                            id="balance"
+                            value={data.balance}
+                            currencyCode={currencyCode}
+                            onChange={(val) => setData('balance', val)}
+                            error={errors.balance}
+                        />
+
+                        <InputFieldColor
+                            id="color"
+                            label="Color"
+                            colors={colors}
+                            value={data.color}
+                            onChange={(val) => setData('color', val)}
+                            error={errors.color}
+                        />
+
+                        <button
+                            type="submit"
+                            className="w-full rounded-md bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+                            disabled={processing}
+                        >
+                            {processing ? (isEdit ? 'Updating...' : 'Saving...') : isEdit ? 'Update Account' : 'Create Account'}
+                        </button>
+                    </form>
+
+                    {isEdit && (
+                        <div className="mt-4 text-right">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setDeleteInput('');
+                                    setShowDeleteConfirm(true);
+                                }}
+                                className="text-sm text-red-600 hover:underline dark:text-red-400"
+                            >
+                                Delete this account
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal show={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} maxWidth="sm">
+                <div className="p-6 text-slate-800 dark:text-slate-100">
+                    <h2 className="mb-4 text-lg font-semibold text-red-600 dark:text-red-400">Delete Account</h2>
+                    <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
+                        Type <span className="font-bold">{initialData?.name}</span> to confirm deletion.
+                    </p>
+                    <input
+                        type="text"
+                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        value={deleteInput}
+                        onChange={(e) => setDeleteInput(e.target.value)}
+                        placeholder="Enter account name"
+                    />
+                    <div className="mt-4 flex justify-end gap-3">
+                        <button onClick={() => setShowDeleteConfirm(false)} className="text-sm text-slate-600 hover:underline dark:text-slate-300">
+                            Cancel
+                        </button>
+                        <button
+                            onClick={confirmDelete}
+                            disabled={deleteInput !== initialData?.name}
+                            className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-50"
+                        >
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+        </>
     );
 }
