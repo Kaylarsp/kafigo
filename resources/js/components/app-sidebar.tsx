@@ -9,8 +9,6 @@ import {
     Folder, 
     LayoutGrid, 
     CreditCard, 
-    TrendingUp, 
-    TrendingDown, 
     ArrowRightLeft,
     Grid3X3,
     Tags,
@@ -31,25 +29,13 @@ const mainNavItems: NavItem[] = [
         href: '/accounts',
         icon: CreditCard,
     },
-];
-
-const transactionNavItems: NavItem[] = [
     {
-        title: 'Income',
-        href: '/income',
-        icon: TrendingUp,
-    },
-    {
-        title: 'Outcome',
-        href: '/outcome',
-        icon: TrendingDown,
-    },
-    {
-        title: 'Transfer',
-        href: '/transfer',
+        title: 'Transactions',
+        href: '/transactions',
         icon: ArrowRightLeft,
     },
 ];
+
 
 const managementNavItems: NavItem[] = [
     {
@@ -111,14 +97,7 @@ export function AppSidebar() {
             </SidebarHeader>
             <SidebarContent>
                 <NavMain items={mainNavItems} />
-                
-                <div className="px-3 py-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        Transaction
-                    </p>
-                </div>
-                <NavMain items={transactionNavItems} />
-                
+                                
                 <div className="px-3 py-2">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Management
