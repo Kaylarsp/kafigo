@@ -51,11 +51,6 @@ class AccountController extends Controller
         return back();
     }
 
-    public function create()
-    {
-        return Inertia::render('account/create');
-    }
-
     public function store(Request $request)
     {
         $request->validate([
