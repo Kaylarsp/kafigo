@@ -6,6 +6,7 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Account;
+use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
 {
@@ -31,6 +32,7 @@ class TransactionController extends Controller
             'title' => 'nullable|string',
         ]);
 
+        $data['user_id'] = Auth::id();
         Transaction::create($data);
 
         return redirect()->back()->with('success', 'Transaction created');

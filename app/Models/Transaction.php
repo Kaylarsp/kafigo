@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Scopes\UserOwnedScope;
 
 class Transaction extends Model
 {
@@ -25,5 +26,10 @@ class Transaction extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new UserOwnedScope);
     }
 }

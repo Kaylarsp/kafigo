@@ -146,7 +146,15 @@ export default function Transactions({ transactions = [], accounts = [] }: Props
 
           {/* Quick Add */}
           <div className="flex gap-2">
-            <Button onClick={() => openCreate('income')}>Add Transaction</Button>
+            <Button onClick={() => openCreate('income')} className="bg-green-600 hover:bg-green-700">
+              <ArrowUpRight className="w-4 h-4 mr-1" /> Add Income
+            </Button>
+            <Button onClick={() => openCreate('expense')} className="bg-red-600 hover:bg-red-700">
+              <ArrowDownRight className="w-4 h-4 mr-1" /> Add Outcome
+            </Button>
+            <Button onClick={() => openCreate('transfer')} className="bg-blue-600 hover:bg-blue-700">
+              <ArrowRightLeft className="w-4 h-4 mr-1" /> Add Transfer
+            </Button>
           </div>
 
           {/* Transaction list */}
@@ -186,8 +194,8 @@ export default function Transactions({ transactions = [], accounts = [] }: Props
                           t.type === 'income'
                             ? 'text-green-600 font-semibold'
                             : t.type === 'expense'
-                            ? 'text-red-600 font-semibold'
-                            : 'text-blue-600 font-semibold'
+                              ? 'text-red-600 font-semibold'
+                              : 'text-blue-600 font-semibold'
                         }
                       >
                         {t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''}
@@ -206,7 +214,10 @@ export default function Transactions({ transactions = [], accounts = [] }: Props
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selected?.title ?? 'Transaction Detail'}</DialogTitle>
+            <DialogTitle>{data.id
+              ? 'Edit Transaction'
+              : `Add ${data.type.charAt(0).toUpperCase() + data.type.slice(1)}`
+            }</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-2 mt-2 text-sm">
@@ -259,20 +270,6 @@ export default function Transactions({ transactions = [], accounts = [] }: Props
               <Label>Amount</Label>
               <Input type="number" value={data.amount} onChange={(e) => setData('amount', e.target.value)} />
               {errors.amount && <p className="text-xs text-red-600">{errors.amount}</p>}
-            </div>
-
-            <div>
-              <Label>Type</Label>
-              <select
-                className="w-full rounded-md border px-3 py-2"
-                value={data.type}
-                onChange={(e) => setData('type', e.target.value as any)}
-              >
-                <option value="income">Income</option>
-                <option value="expense">Outcome</option>
-                <option value="transfer">Transfer</option>
-              </select>
-              {errors.type && <p className="text-xs text-red-600">{errors.type}</p>}
             </div>
 
             <div>
