@@ -13,15 +13,16 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
+            $table->string('title')->nullable();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('account_id')->constrained()->onDelete('cascade');
             $table->enum('type', ['income', 'outcome', 'transfer']);
-            $table->foreignId('category_id')->constrained()->onDelete('cascade');
-            $table->integer('to_category_id');
-            $table->json('tags');
-            $table->float('amount');
+            $table->foreignId('category_id')->constrained()->onDelete('cascade')->nullable();
+            $table->foreignId('to_account_id')->constrained('accounts')->onDelete('cascade')->nullable();
+            $table->foreignId('tags')->constrained()->onDelete('cascade')->nullable();
+            $table->decimal('amount');
             $table->dateTime('transaction_date');
-            $table->string('description');
+            $table->string('description')->nullable();
             $table->timestamps();
         });
     }
