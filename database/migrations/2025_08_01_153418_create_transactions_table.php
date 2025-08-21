@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('category_id')->constrained()->onDelete('cascade')->nullable();
             $table->foreignId('to_account_id')->constrained('accounts')->onDelete('cascade')->nullable();
             $table->foreignId('tags')->constrained()->onDelete('cascade')->nullable();
-            $table->decimal('amount');
+            $table->decimal('amount', 20, 2);
             $table->dateTime('transaction_date');
             $table->string('description')->nullable();
             $table->timestamps();
