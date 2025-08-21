@@ -26,6 +26,9 @@ class Account extends Authenticatable
         static::addGlobalScope(new UserOwnedScope);
     }
 
+    protected $casts = [
+        'balance' => 'decimal:2',
+    ];
 
     // relations
     public function user()
