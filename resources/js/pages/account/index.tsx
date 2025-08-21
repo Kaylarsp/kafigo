@@ -9,10 +9,11 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { Building2, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { FormEventHandler, useEffect, useState } from 'react';
 
+// PERUBAIKAN: Tipe 'balance' tetap string, sesuai data dari Laravel (decimal cast).
 interface Account {
     id: number;
     name: string;
-    balance: number;
+    balance: string;
     color: string | null;
     order: number;
     currency_id: number;
@@ -51,7 +52,23 @@ const colors = [
 
 const getRandomColor = () => colors[Math.floor(Math.random() * colors.length)];
 
-const formatCurrency = (val: number, currencyCode = 'IDR') => `${val.toLocaleString('id-ID', { minimumFractionDigits: 2 })} ${currencyCode}`;
+// PERUBAIKAN: Fungsi format dibuat lebih kuat untuk menangani input string atau number.
+const formatCurrency = (val: string | number, currencyCode = 'IDR') => {
+    // 1. Ubah input (bisa string atau number) menjadi tipe number
+    const numberValue = typeof val === 'string' ? parseFloat(val) : val;
+
+    // 2. Cek jika hasilnya bukan angka yang valid, beri nilai default
+    if (isNaN(numberValue)) {
+        return `0,00 ${currencyCode}`;
+    }
+
+    // 3. Format angka yang sudah valid ke format Rupiah (IDR)
+    return `${numberValue.toLocaleString('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })} ${currencyCode}`;
+};
+
 
 export default function Accounts({ accounts, currencies }: PageProps) {
     const [showForm, setShowForm] = useState(false);
@@ -108,6 +125,7 @@ export default function Accounts({ accounts, currencies }: PageProps) {
                                             <div>
                                                 <h3 className="mb-2 text-xl font-bold">{account.name}</h3>
                                                 <div className="text-3xl font-bold text-slate-800 dark:text-white">
+                                                    {/* Fungsi formatCurrency sekarang aman digunakan dengan data 'balance' (string) */}
                                                     {formatCurrency(account.balance, currencyCode)}
                                                 </div>
                                             </div>
@@ -174,6 +192,7 @@ export default function Accounts({ accounts, currencies }: PageProps) {
         </AppLayout>
     );
 }
+
 function AccountFormModal({
     initialData,
     show,
@@ -189,7 +208,7 @@ function AccountFormModal({
 
     const { data, setData, post, put, processing, reset, errors } = useForm({
         name: '',
-        balance: 0,
+        balance: 0, // State di dalam form tetap number untuk kemudahan input
         currency_id: 1,
         color: '',
     });
@@ -198,17 +217,20 @@ function AccountFormModal({
     const [deleteInput, setDeleteInput] = useState('');
 
     useEffect(() => {
-        if (initialData) {
+        if (show && initialData) {
             setData({
                 name: initialData.name,
-                balance: initialData.balance,
+                // PERUBAIKAN: Konversi 'balance' dari string ke number saat memuat data ke form
+                balance: parseFloat(initialData.balance) || 0,
                 currency_id: initialData.currency_id,
                 color: initialData.color ?? '',
             });
-        } else {
+        } else if (show) {
+            // Reset form hanya jika modal terbuka untuk membuat data baru
             reset();
+            setData('currency_id', currencies[0]?.id || 1); // Set default currency
         }
-    }, [initialData]);
+    }, [initialData, show]); // Tambahkan 'show' sebagai dependency
 
     const selectedCurrency = currencies.find((c) => c.id === data.currency_id);
     const currencyCode = selectedCurrency?.code || 'IDR';
@@ -264,11 +286,11 @@ function AccountFormModal({
                         />
 
                         <InputFieldCurrency
-                            label="Initial Balance"
+                            label={isEdit ? "Current Balance" : "Initial Balance"}
                             id="balance"
-                            value={data.balance}
+                            value={data.balance} // Komponen ini menerima 'number'
                             currencyCode={currencyCode}
-                            onChange={(val) => setData('balance', val)}
+                            onChange={(val) => setData('balance', val)} // Komponen ini mengembalikan 'number'
                             error={errors.balance}
                         />
 
