@@ -24,12 +24,21 @@ class TransactionController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
+            'title' => 'nullable|string',
             'account_id' => 'required|exists:accounts,id',
             'amount' => 'required|numeric',
-            'type' => 'required|in:income,expense,transfer',
-            'description' => 'nullable|string',
+            'type' => 'required|in:income,outcome,transfer',
             'transaction_date' => 'required|date',
-            'title' => 'nullable|string',
+            'description' => 'nullable|string',
+            'category_id' => ['nullable', 'exists:categories,id'],
+            'tags' => ['nullable', 'string'],
+
+            'to_account_id' => [
+                'nullable',                      // Boleh kosong jika bukan transfer
+                'required_if:type,transfer',     // Wajib diisi jika tipenya 'transfer'
+                'exists:accounts,id',            // Pastikan ID akunnya valid
+                'different:account_id'           // Pastikan tidak transfer ke akun yang sama
+            ],
         ]);
 
         $data['user_id'] = Auth::id();
@@ -43,7 +52,7 @@ class TransactionController extends Controller
         $data = $request->validate([
             'account_id' => 'required|exists:accounts,id',
             'amount' => 'required|numeric',
-            'type' => 'required|in:income,expense,transfer',
+            'type' => 'required|in:income,outcome,transfer',
             'description' => 'nullable|string',
             'transaction_date' => 'required|date',
             'title' => 'nullable|string',
