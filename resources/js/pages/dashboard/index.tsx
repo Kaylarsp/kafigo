@@ -6,16 +6,23 @@ import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, DollarS
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' }];
 
-export default function Dashboard() {
-    const totalBalance = 265_480_000;
-    const income = 265_480_000;
-    const outcome = 0;
+// Definisikan tipe data untuk semua props yang diterima dari Laravel
+interface DashboardProps {
+    totalBalance: number;
+    income: number;
+    outcome: number;
+}
+
+// Terima 'totalBalance', 'income', dan 'outcome' sebagai props
+export default function Dashboard({ totalBalance, income, outcome }: DashboardProps) {
+    // cashflow sekarang dihitung secara dinamis berdasarkan props
     const cashflow = income - outcome;
 
+    // Fungsi bantuan untuk memformat mata uang
     const formatCurrency = (val: number) => `IDR ${(val / 1_000_000).toFixed(2)}m`;
     const formatFullCurrency = (val: number) => `IDR ${val.toLocaleString('id-ID', { minimumFractionDigits: 2 })}`;
 
-    // Mock data untuk chart
+    // Mock data untuk chart (bisa dibuat dinamis pada tahap selanjutnya)
     const monthlyData = [
         { month: 'Jan', income: 180, outcome: 120 },
         { month: 'Feb', income: 220, outcome: 150 },
@@ -54,8 +61,9 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Top Cards */}
+                    {/* Top Cards - Sekarang menampilkan data dinamis */}
                     <div className="grid gap-6 md:grid-cols-3">
+                        {/* Total Balance Card */}
                         <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
                             <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-10 translate-x-10"></div>
                             <CardHeader className="pb-2 relative z-10">
@@ -73,11 +81,12 @@ export default function Dashboard() {
                             </CardContent>
                         </Card>
 
+                        {/* Income Card */}
                         <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-green-600 to-green-700 text-white hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
                             <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-10 translate-x-10"></div>
                             <CardHeader className="pb-2 relative z-10">
                                 <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm font-medium opacity-90">Income</CardTitle>
+                                    <CardTitle className="text-sm font-medium opacity-90">Income (This Month)</CardTitle>
                                     <ArrowUpRight className="w-5 h-5 opacity-80" />
                                 </div>
                             </CardHeader>
@@ -90,11 +99,12 @@ export default function Dashboard() {
                             </CardContent>
                         </Card>
 
+                        {/* Outcome Card */}
                         <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-slate-600 to-slate-700 text-white hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
                             <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-10 translate-x-10"></div>
                             <CardHeader className="pb-2 relative z-10">
                                 <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm font-medium opacity-90">Outcome</CardTitle>
+                                    <CardTitle className="text-sm font-medium opacity-90">Outcome (This Month)</CardTitle>
                                     <ArrowDownRight className="w-5 h-5 opacity-80" />
                                 </div>
                             </CardHeader>
@@ -102,7 +112,7 @@ export default function Dashboard() {
                                 <div className="text-3xl font-bold mb-2">{formatCurrency(outcome)}</div>
                                 <div className="flex items-center text-sm opacity-90">
                                     <TrendingDown className="w-4 h-4 mr-1" />
-                                    <span>No expenses yet</span>
+                                    <span>-2.1% this month</span>
                                 </div>
                             </CardContent>
                         </Card>
@@ -117,8 +127,8 @@ export default function Dashboard() {
                                     <p className="text-slate-600 dark:text-slate-400">Your financial performance this month</p>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-3xl font-bold text-emerald-600">
-                                        +{formatCurrency(cashflow)}
+                                    <div className={`text-3xl font-bold ${cashflow >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                        {cashflow >= 0 ? '+' : ''}{formatCurrency(cashflow)}
                                     </div>
                                     <div className="text-sm text-slate-600 dark:text-slate-400">
                                         {formatFullCurrency(cashflow)}
