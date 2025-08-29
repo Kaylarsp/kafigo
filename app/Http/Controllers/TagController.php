@@ -28,10 +28,17 @@ class TagController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        Tag::create([
+        $tags = Tag::create([
             'name' => $request->name,
             'user_id' => auth()->id(),
         ]);
+
+        if (isset($request->transaction) && $request->transaction) {
+            return back()->with([
+                'success' => true,
+                'tags' => $tags,
+            ]);
+        }
 
         return redirect()->route('tags.index');
     }

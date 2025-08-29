@@ -69,6 +69,7 @@ export default function Transactions({ transactions = [], accounts = [], categor
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+    const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 
     type FormData = {
         id?: number | null;
@@ -403,7 +404,7 @@ export default function Transactions({ transactions = [], accounts = [], categor
                                 />
                             </div>
                             <div className="mt-5 flex items-center">
-                                <Button type="button" variant="outline" size="icon" onClick={() => setIsCategoryModalOpen(true)}>
+                                <Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}>
                                     <PlusCircle className="h-4 w-4" />
                                 </Button>
                             </div>
@@ -452,15 +453,59 @@ export default function Transactions({ transactions = [], accounts = [], categor
             </Dialog>
 
             <CategoryFormModal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} />
+            <TagFormModal isOpen={isTagModalOpen} onClose={() => setIsTagModalOpen(false)} />
         </AppLayout>
     );
 }
 
+function TagFormModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+    const { data, setData, post, processing, errors, reset } = useForm({ name: '', transaction:true });
+
+    const submitTag = (e: React.FormEvent) => {
+        e.preventDefault();
+        post('/tags', {
+            preserveScroll: true,
+            onSuccess: () => {
+                onClose();
+                reset();
+                router.reload({ only: ['tags'] }); // refresh daftar tag
+            },
+        });
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add New Tag</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={submitTag} className="mt-2 space-y-4">
+                    <div>
+                        <Label htmlFor="new_tag_name">Tag Name</Label>
+                        <Input id="new_tag_name" value={data.name} onChange={(e) => setData('name', e.target.value)} autoFocus />
+                        {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="ghost" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={processing}>
+                            {processing ? 'Saving...' : 'Save Tag'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function CategoryFormModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-    const { data, setData, post, processing, errors, reset } = useForm({ name: '' });
+    const { data, setData, post, processing, errors, reset } = useForm({ name: '', color: 'from-blue-500 to-indigo-500', transaction:true });
+
 
     const submitCategory = (e: React.FormEvent) => {
         e.preventDefault();
+
         post('/categories', {
             preserveScroll: true,
             onSuccess: () => {
