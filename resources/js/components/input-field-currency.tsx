@@ -32,7 +32,7 @@ export function InputFieldCurrency({
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"  >
         {label}
       </label>
       <input

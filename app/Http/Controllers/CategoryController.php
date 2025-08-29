@@ -29,11 +29,18 @@ class CategoryController extends Controller
             'color' => 'required|string',
         ]);
 
-        Category::create([
+        $category = Category::create([
             'name' => $request->name,
             'color' => $request->color,
             'user_id' => auth()->id(),
         ]);
+
+        if (isset($request->transaction) && $request->transaction) {
+            return back()->with([
+                'success' => true,
+                'category' => $category,
+            ]);
+        }
 
         return redirect()->route('categories.index');
     }

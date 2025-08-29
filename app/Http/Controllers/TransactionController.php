@@ -6,6 +6,9 @@ use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Account;
+use App\Models\Category;
+use App\Models\Currency;
+use App\Models\Tag;
 use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
@@ -14,10 +17,16 @@ class TransactionController extends Controller
     {
         $transactions = Transaction::with('account')->get();
         $accounts = Account::select('id', 'name')->get();
+        $categories = Category::select('id', 'name')->get();
+        $tags = Tag::select('id', 'name')->get();
+        $currencies = Currency::select('id', 'code', 'name')->get();
 
         return Inertia::render('transaction/index', [
             'transactions' => $transactions,
             'accounts' => $accounts,
+            'categories' => $categories,
+            'tags' => $tags,
+            'currencies' => $currencies
         ]);
     }
 
