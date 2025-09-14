@@ -16,3 +16,4 @@ require __DIR__.'/categories.php';
 require __DIR__.'/tags.php';
 require __DIR__.'/currencies.php';
 require __DIR__.'/transactions.php';
+require __DIR__.'/budgets.php';
