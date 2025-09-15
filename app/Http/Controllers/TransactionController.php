@@ -51,6 +51,8 @@ class TransactionController extends Controller
         ]);
 
         $data['user_id'] = Auth::id();
+
+        $this->updateAccountAmount($data['type'], $data['account_id'], $data['amount'], $data['to_account_id']);
         Transaction::create($data);
 
         return redirect()->back()->with('success', 'Transaction created');
@@ -60,6 +62,7 @@ class TransactionController extends Controller
     {
         $data = $request->validate([
             'account_id' => 'required|exists:accounts,id',
+            'to_account_id' => 'nullable|exists:accounts,id',
             'amount' => 'required|numeric',
             'type' => 'required|in:income,outcome,transfer',
             'description' => 'nullable|string',
@@ -67,9 +70,30 @@ class TransactionController extends Controller
             'title' => 'nullable|string',
         ]);
 
+        $this->updateAccountAmount($data['type'], $data['account_id'], $data['amount'], $data['to_account_id']);
+
         $transaction->update($data);
 
         return redirect()->back()->with('success', 'Transaction updated');
+    }
+
+    public function updateAccountAmount($type, $account_id, $balance, $to_account_id = null)
+    {
+        $oldAccount = Account::find($account_id);
+        if ($type == 'income') {
+            $oldAccount->balance += $balance;
+            $oldAccount->save();
+        } else if ($type == 'outcome') {
+            $oldAccount->balance -= $balance;
+            $oldAccount->save();
+        } else if($type == 'transfer' && $to_account_id != null) {
+            $fromAccount = Account::find($account_id);
+            $toAccount = Account::find($to_account_id);
+            $fromAccount->balance -= $balance;
+            $fromAccount->save();
+            $toAccount->balance += $balance;
+            $toAccount->save();
+        }
     }
 
     public function destroy(Transaction $transaction)
