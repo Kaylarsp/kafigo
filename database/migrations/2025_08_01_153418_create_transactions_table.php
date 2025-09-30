@@ -19,7 +19,7 @@ return new class extends Migration
             $table->enum('type', ['income', 'outcome', 'transfer']);
             $table->foreignId('category_id')->constrained()->onDelete('cascade')->nullable();
             $table->foreignId('to_account_id')->constrained('accounts')->onDelete('cascade')->nullable();
-            $table->foreignId('tags')->constrained()->onDelete('cascade')->nullable();
+            $table->json('tags')->nullable();
             $table->decimal('amount', 20, 2);
             $table->dateTime('transaction_date');
             $table->string('description')->nullable();

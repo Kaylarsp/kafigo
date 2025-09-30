@@ -14,4 +14,6 @@ Route::prefix('transactions')
         Route::put('/{id}', [TransactionController::class, 'update'])->name('update');
         Route::delete('/{id}', [TransactionController::class, 'destroy'])->name('destroy');
         Route::post('/reorder', [TransactionController::class, 'reorder'])->name('reorder');
+        Route::post('/get-transaction', [TransactionController::class, 'getTransaction'])->name('get-transaction');
+
     });
