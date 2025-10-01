@@ -1,16 +1,17 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import React, { useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 
-import { InputField, SelectField } from '@/components/form-fields';
 import { type BreadcrumbItem } from '@/types';
-import { ArrowDownRight, ArrowRightLeft, ArrowUpRight, Calendar, PlusCircle } from 'lucide-react';
+import { ArrowDownRight, ArrowRightLeft, ArrowUpRight, Calendar } from 'lucide-react';
+import CategoryFormModal from './category_form';
+import TransactionFormModal from './form';
+import TagFormModal from './tag_form';
 
 // --- INTERFACES ---
 interface Account {
@@ -28,7 +29,7 @@ interface Tag {
     name: string;
 }
 
-interface Transaction {
+export interface Transaction {
     id: number;
     title?: string | null;
     account_id?: number | null;
@@ -41,7 +42,8 @@ interface Transaction {
     type: 'income' | 'outcome' | 'transfer' | string;
     description?: string | null;
     transaction_date?: string | null;
-    tags?: Tag[] | null;
+    tags?: number[];
+    tags_data?: Tag[];
 }
 
 interface Props {
@@ -57,6 +59,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Transactions({ transactions = [], accounts = [], categories = [], tags = [] }: Props) {
+    // --- STATE & DATA MANAGEMENT ---
     const totalIncome = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + Number(t.amount || 0), 0);
     const totalOutcome = transactions.filter((t) => t.type === 'outcome').reduce((s, t) => s + Number(t.amount || 0), 0);
     const totalTransfer = transactions.filter((t) => t.type === 'transfer').reduce((s, t) => s + Number(t.amount || 0), 0);
@@ -64,91 +67,52 @@ export default function Transactions({ transactions = [], accounts = [], categor
     const formatFullCurrency = (val: number | string) => `IDR ${Number(val).toLocaleString('id-ID', { minimumFractionDigits: 2 })}`;
 
     const [selected, setSelected] = useState<Transaction | null>(null);
+    const [detailedTransaction, setDetailedTransaction] = useState<Transaction | null>(null);
+
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [formType, setFormType] = useState<'income' | 'outcome' | 'transfer'>('income');
 
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 
-    type FormData = {
-        id?: number | null;
-        account_id: string;
-        to_account_id: string;
-        category_id: string;
-        tags: string;
-        amount: string;
-        type: 'income' | 'outcome' | 'transfer' | string;
-        description: string;
-        transaction_date: string;
-        title?: string;
-    };
+    // --- EFFECTS ---
+    useEffect(() => {
+        const fetchTransactionDetails = async () => {
+            if (selected?.id) {
+                try {
+                    const response = await axios.post('/transactions/get-transaction', { id: selected.id });
+                    setDetailedTransaction(response.data);
+                } catch (error) {
+                    console.error('Failed to fetch transaction details:', error);
+                    setIsViewOpen(false);
+                }
+            }
+        };
 
-    const { data, setData, post, put, processing, errors, reset } = useForm<FormData>({
-        id: null,
-        account_id: '',
-        to_account_id: '',
-        category_id: '',
-        tags: '',
-        amount: '',
-        type: 'income',
-        description: '',
-        transaction_date: new Date().toISOString().slice(0, 10),
-        title: '',
-    });
+        if (isViewOpen) {
+            fetchTransactionDetails();
+        } else {
+            setDetailedTransaction(null);
+        }
+    }, [isViewOpen, selected]);
 
+    // --- HANDLER FUNCTIONS ---
     function openView(tx: Transaction) {
         setSelected(tx);
         setIsViewOpen(true);
     }
 
-    // MODIFIKASI: Fungsi openCreate sekarang mengisi default value
-    function openCreate(type: FormData['type']) {
-        reset();
-        setData({
-            ...data,
-            type: type,
-            // Set akun pertama sebagai default untuk mempercepat input
-            account_id: accounts[0]?.id.toString() ?? '',
-            // Reset sisa field ke nilai default yang bersih
-            to_account_id: '',
-            category_id: '',
-            tags: '',
-            amount: '',
-            description: '',
-            title: '',
-            transaction_date: new Date().toISOString().slice(0, 10),
-        });
+    function openCreate(type: 'income' | 'outcome' | 'transfer') {
+        setSelected(null);
+        setFormType(type);
         setIsFormOpen(true);
     }
 
     function openEdit(tx: Transaction) {
-        setData({
-            id: tx.id,
-            account_id: (tx.account_id ?? '').toString(),
-            to_account_id: (tx.to_account_id ?? '').toString(),
-            category_id: (tx.category_id ?? '').toString(),
-            tags: tx.tags?.map((t) => t.name).join(', ') ?? '',
-            amount: Number(tx.amount || 0).toString(),
-            type: tx.type,
-            description: tx.description ?? '',
-            transaction_date: tx.transaction_date ?? new Date().toISOString().slice(0, 10),
-            title: tx.title ?? '',
-        });
+        setSelected(tx);
         setIsFormOpen(true);
-    }
-
-    function submit(e: React.FormEvent) {
-        e.preventDefault();
-        const url = data.id ? `/transactions/${data.id}` : '/transactions';
-        const method = data.id ? put : post;
-
-        method(url, {
-            onSuccess: () => {
-                setIsFormOpen(false);
-                reset();
-            },
-        });
     }
 
     function handleDeleteRequest(tx: Transaction | null) {
@@ -183,12 +147,7 @@ export default function Transactions({ transactions = [], accounts = [], categor
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
                             <Calendar className="h-4 w-4" />
-                            {new Date().toLocaleDateString('id-ID', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                            })}
+                            {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </div>
                     </div>
 
@@ -255,43 +214,88 @@ export default function Transactions({ transactions = [], accounts = [], categor
                 </div>
             </div>
 
-            {/* Detail Dialog */}
+            {/* MODALS */}
             <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Transaction Details</DialogTitle>
                     </DialogHeader>
-                    <div className="mt-2 space-y-2 text-sm">
-                        <div>
-                            <strong>Title:</strong> {selected?.title ?? '-'}
-                        </div>
-                        <div>
-                            <strong>Type:</strong> <span className="capitalize">{selected?.type}</span>
-                        </div>
-                        <div>
-                            <strong>Amount:</strong> {selected ? formatFullCurrency(selected.amount) : '-'}
-                        </div>
-                        <div>
-                            <strong>Date:</strong> {selected?.transaction_date ?? '-'}
-                        </div>
-                        <div>
-                            <strong>{selected?.type === 'transfer' ? 'From Account:' : 'Account:'}</strong> {selected?.account?.name ?? '-'}
-                        </div>
-                        {selected?.type === 'transfer' && (
-                            <div>
-                                <strong>To Account:</strong> {selected?.to_account?.name ?? '-'}
+
+                    {/* --- KONTEN DIALOG YANG DIDESAIN ULANG --- */}
+                    {!detailedTransaction ? (
+                        <div className="py-12 text-center text-muted-foreground">Loading details...</div>
+                    ) : (
+                        <div className="flex flex-col gap-4 pt-2">
+                            {/* Bagian Utama: Jumlah & Judul */}
+                            <div className="flex items-start justify-between rounded-lg bg-secondary/50 p-4 dark:bg-secondary/20">
+                                <div>
+                                    <p className="text-lg font-semibold text-foreground">{detailedTransaction.title ?? 'Untitled Transaction'}</p>
+                                    <p className="text-sm text-muted-foreground">{detailedTransaction.transaction_date ?? '-'}</p>
+                                </div>
+                                <div
+                                    className={`flex items-center gap-1 text-2xl font-bold ${
+                                        detailedTransaction.type === 'income'
+                                            ? 'text-green-600'
+                                            : detailedTransaction.type === 'outcome'
+                                              ? 'text-red-600'
+                                              : 'text-blue-600'
+                                    }`}
+                                >
+                                    {detailedTransaction.type === 'income' ? (
+                                        <ArrowUpRight className="h-6 w-6" />
+                                    ) : detailedTransaction.type === 'outcome' ? (
+                                        <ArrowDownRight className="h-6 w-6" />
+                                    ) : (
+                                        <ArrowRightLeft className="h-6 w-6" />
+                                    )}
+                                    <span>{formatFullCurrency(detailedTransaction.amount)}</span>
+                                </div>
                             </div>
-                        )}
-                        <div>
-                            <strong>Category:</strong> {selected?.category?.name ?? '-'}
+
+                            {/* Bagian Detail: Menggunakan Grid */}
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                                <DetailItem label="Type">
+                                    <span className="rounded-full bg-secondary px-2 py-0.5 text-secondary-foreground dark:bg-slate-700">
+                                        {detailedTransaction.type}
+                                    </span>
+                                </DetailItem>
+
+                                <DetailItem label="Category">{detailedTransaction.category?.name ?? '-'}</DetailItem>
+
+                                <DetailItem label={detailedTransaction.type === 'transfer' ? 'From Account' : 'Account'}>
+                                    {detailedTransaction.account?.name ?? '-'}
+                                </DetailItem>
+
+                                {detailedTransaction.type === 'transfer' && (
+                                    <DetailItem label="To Account">{detailedTransaction.to_account?.name ?? '-'}</DetailItem>
+                                )}
+                            </div>
+
+                            {/* Bagian Deskripsi & Tags */}
+                            {detailedTransaction.description && (
+                                <DetailItem label="Description">
+                                    <p className="text-foreground">{detailedTransaction.description}</p>
+                                </DetailItem>
+                            )}
+
+                            {detailedTransaction.tags_data && detailedTransaction.tags_data.length > 0 && (
+                                <DetailItem label="Tags">
+                                    <div className="flex flex-wrap gap-2">
+                                        {detailedTransaction.tags_data.map((tag) => (
+                                            <span
+                                                key={tag.id}
+                                                className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground dark:bg-slate-700"
+                                            >
+                                                #{tag.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </DetailItem>
+                            )}
                         </div>
-                        <div>
-                            <strong>Description:</strong> {selected?.description ?? '-'}
-                        </div>
-                        <div>
-                            <strong>Tags:</strong> {selected?.tags?.map((t) => t.name).join(', ') ?? '-'}
-                        </div>
-                    </div>
+                    )}
+
+                    {/* Footer tidak berubah fungsinya */}
                     <DialogFooter className="mt-4 flex gap-2">
                         <Button
                             onClick={() => {
@@ -311,125 +315,18 @@ export default function Transactions({ transactions = [], accounts = [], categor
                 </DialogContent>
             </Dialog>
 
-            {/* Form Dialog */}
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            {data.id ? 'Edit' : 'Add'} {data.type.charAt(0).toUpperCase() + data.type.slice(1)}
-                        </DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={submit} className="mt-2 space-y-4">
-                        <InputField
-                            label="Title"
-                            id="title"
-                            type="text"
-                            value={data.title}
-                            onChange={(e) => setData('title', e.target.value)}
-                            error={errors.title}
-                        />
+            <TransactionFormModal
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                transaction={selected}
+                defaultType={formType}
+                accounts={accounts}
+                categories={categories}
+                tags={tags}
+                onCategoryAdd={() => setIsCategoryModalOpen(true)}
+                onTagAdd={() => setIsTagModalOpen(true)}
+            />
 
-                        <SelectField
-                            label={data.type === 'transfer' ? 'From Account' : 'Account'}
-                            value={data.account_id}
-                            onChange={(val) => setData('account_id', val ?? 0)}
-                            options={accounts.map((acc) => ({ id: acc.id, name: acc.name }))}
-                            error={errors.account_id}
-                        />
-
-                        {data.type === 'transfer' && (
-                            <SelectField
-                                label="To Account"
-                                value={data.to_account_id}
-                                onChange={(val) => setData('to_account_id', val ?? '')}
-                                options={accounts
-                                    .filter((acc) => acc.id.toString() !== data.account_id)
-                                    .map((acc) => ({ id: acc.id, name: acc.name }))}
-                                error={errors.to_account_id}
-                            />
-                        )}
-
-                        <div className="flex items-center gap-2">
-                            <div className="w-99">
-                                <SelectField
-                                    label="Category (Optional)"
-                                    value={data.category_id}
-                                    onChange={(val) => setData('category_id', val ?? 0)}
-                                    options={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
-                                    error={errors.category_id}
-                                />
-                            </div>
-                            <div className="mt-5 flex items-center">
-                                <Button type="button" variant="outline" size="icon" onClick={() => setIsCategoryModalOpen(true)}>
-                                    <PlusCircle className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-
-                        <InputField
-                            label="Amount"
-                            id="amount"
-                            type="number"
-                            value={data.amount}
-                            onChange={(e) => setData('amount', e.target.value)}
-                            placeholder="e.g., 50000"
-                            error={errors.amount}
-                        />
-
-                        <InputField
-                            label="Date"
-                            id="transaction_date"
-                            type="date"
-                            value={data.transaction_date}
-                            onChange={(e) => setData('transaction_date', e.target.value)}
-                            error={errors.transaction_date}
-                        />
-
-                        <InputField
-                            label="Description (Optional)"
-                            id="description"
-                            type="text"
-                            value={data.description}
-                            onChange={(e) => setData('description', e.target.value)}
-                        />
-
-                        <div className="flex items-center gap-2">
-                            <div className="w-99">
-                                <SelectField
-                                    label="Tags (Optional)"
-                                    value={data.tag_id}
-                                    onChange={(val) => setData('tag_id', val ?? 0)}
-                                    options={tags.map((tag) => ({ id: tag.id, name: tag.name }))}
-                                    error={errors.tag_id}
-                                />
-                            </div>
-                            <div className="mt-5 flex items-center">
-                                <Button type="button" variant="outline" size="icon" onClick={() => setIsTagModalOpen(true)}>
-                                    <PlusCircle className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-
-                        <DialogFooter className="mt-4 flex gap-2">
-                            <Button type="submit" disabled={processing}>
-                                {processing ? 'Saving...' : data.id ? 'Update' : 'Create'}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => {
-                                    reset();
-                                    setIsFormOpen(false);
-                                }}
-                            >
-                                Cancel
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
-            {/* Delete Confirmation Dialog */}
             <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -458,87 +355,12 @@ export default function Transactions({ transactions = [], accounts = [], categor
     );
 }
 
-function TagFormModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-    const { data, setData, post, processing, errors, reset } = useForm({ name: '', transaction:true });
-
-    const submitTag = (e: React.FormEvent) => {
-        e.preventDefault();
-        post('/tags', {
-            preserveScroll: true,
-            onSuccess: () => {
-                onClose();
-                reset();
-                router.reload({ only: ['tags'] }); // refresh daftar tag
-            },
-        });
-    };
-
+function DetailItem({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add New Tag</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={submitTag} className="mt-2 space-y-4">
-                    <div>
-                        <Label htmlFor="new_tag_name">Tag Name</Label>
-                        <Input id="new_tag_name" value={data.name} onChange={(e) => setData('name', e.target.value)} autoFocus />
-                        {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
-                    </div>
-                    <DialogFooter>
-                        <Button type="button" variant="ghost" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Saving...' : 'Save Tag'}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function CategoryFormModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-    const { data, setData, post, processing, errors, reset } = useForm({ name: '', color: 'from-blue-500 to-indigo-500', transaction:true });
-
-
-    const submitCategory = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        post('/categories', {
-            preserveScroll: true,
-            onSuccess: () => {
-                onClose();
-                reset();
-                router.reload({ only: ['categories'] });
-            },
-        });
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add New Category</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={submitCategory} className="mt-2 space-y-4">
-                    <div>
-                        <Label htmlFor="new_category_name">Category Name</Label>
-                        <Input id="new_category_name" value={data.name} onChange={(e) => setData('name', e.target.value)} autoFocus />
-                        {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
-                    </div>
-                    <DialogFooter>
-                        <Button type="button" variant="ghost" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={processing}>
-                            {processing ? 'Saving...' : 'Save Category'}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+        <div className="flex flex-col">
+            <span className="text-xs font-medium text-muted-foreground">{label}</span>
+            <span className="text-foreground">{children}</span>
+        </div>
     );
 }
 

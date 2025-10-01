@@ -13,24 +13,31 @@ class Transaction extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'date' => 'date',
-        'amount' => 'decimal:2'
+        'amount' => 'decimal:2',
+        'tags' => 'array'
     ];
 
-    // Relasi ke Account
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new UserOwnedScope);
+    }
+
+    public function getTagsDataAttribute(): \Illuminate\Database\Eloquent\Collection
+    {
+        if (empty($this->tags)) {
+            return (new Tag)->newCollection();
+        }
+
+        return Tag::whereIn('id', $this->tags)->get();
+    }
+
     public function account()
     {
         return $this->belongsTo(Account::class);
     }
 
-    // Relasi ke Category (opsional)
     public function category()
     {
         return $this->belongsTo(Category::class);
-    }
-
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new UserOwnedScope);
     }
 }

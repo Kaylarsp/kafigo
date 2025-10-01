@@ -15,7 +15,7 @@ class TransactionController extends Controller
 {
     public function index()
     {
-        $transactions = Transaction::with('account')->get();
+        $transactions = Transaction::with('account', 'category')->get();
         $accounts = Account::select('id', 'name')->get();
         $categories = Category::select('id', 'name')->get();
         $tags = Tag::select('id', 'name')->get();
@@ -40,19 +40,21 @@ class TransactionController extends Controller
             'transaction_date' => 'required|date',
             'description' => 'nullable|string',
             'category_id' => ['nullable', 'exists:categories,id'],
-            'tags' => ['nullable', 'string'],
+
+            'tags' => 'nullable|array',
+            'tags.*' => 'integer|exists:tags,id',
 
             'to_account_id' => [
-                'nullable',                      // Boleh kosong jika bukan transfer
-                'required_if:type,transfer',     // Wajib diisi jika tipenya 'transfer'
-                'exists:accounts,id',            // Pastikan ID akunnya valid
-                'different:account_id'           // Pastikan tidak transfer ke akun yang sama
+                'nullable',
+                'required_if:type,transfer',
+                'exists:accounts,id',
+                'different:account_id'
             ],
         ]);
 
         $data['user_id'] = Auth::id();
 
-        $this->updateAccountAmount($data['type'], $data['account_id'], $data['amount'], $data['to_account_id']);
+        $this->updateAccountAmount($data['type'], $data['account_id'], $data['amount'], $data['to_account_id'] ?? null);
         Transaction::create($data);
 
         return redirect()->back()->with('success', 'Transaction created');
@@ -68,12 +70,13 @@ class TransactionController extends Controller
             'description' => 'nullable|string',
             'transaction_date' => 'required|date',
             'title' => 'nullable|string',
+
+            'tags' => 'nullable|array',
+            'tags.*' => 'integer|exists:tags,id',
         ]);
 
-        $this->updateAccountAmount($data['type'], $data['account_id'], $data['amount'], $data['to_account_id']);
-
-        $transaction->update($data);
-
+        $this->updateAccountAmount($data['type'], $data['account_id'], $data['amount'], $data['to_account_id'] ?? null);
+        $operation = Transaction::where('id', $request->id)->update($data);
         return redirect()->back()->with('success', 'Transaction updated');
     }
 
@@ -94,6 +97,22 @@ class TransactionController extends Controller
             $toAccount->balance += $balance;
             $toAccount->save();
         }
+    }
+
+    public function getTransaction(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|integer|exists:transactions,id'
+        ]);
+
+        $transaction = Transaction::with('account', 'category')->find($request->id);
+
+        if (!$transaction) {
+            return response()->json(['message' => 'Transaction not found.'], 404);
+        }
+
+        $transaction->append('tags_data');
+        return response()->json($transaction);
     }
 
     public function destroy(Transaction $transaction)
