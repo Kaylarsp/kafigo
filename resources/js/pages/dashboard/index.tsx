@@ -11,10 +11,13 @@ interface DashboardProps {
     totalBalance: number;
     income: number;
     outcome: number;
+    user: {
+        name: string;
+    };
 }
 
 // Terima 'totalBalance', 'income', dan 'outcome' sebagai props
-export default function Dashboard({ totalBalance, income, outcome }: DashboardProps) {
+export default function Dashboard({ totalBalance, income, outcome, user }: DashboardProps) {
     // cashflow sekarang dihitung secara dinamis berdasarkan props
     const cashflow = income - outcome;
 
@@ -44,7 +47,7 @@ export default function Dashboard({ totalBalance, income, outcome }: DashboardPr
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                Hi, Budiws 👋
+                                Hi, {user.name} 👋
                             </h1>
                             <p className="text-slate-600 dark:text-slate-400 mt-1">
                                 Welcome back! Here's your financial overview.
