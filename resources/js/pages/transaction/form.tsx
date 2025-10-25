@@ -7,7 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { PlusCircle } from 'lucide-react';
+<<<<<<< HEAD
 import { type Transaction } from './Index'; // Mengimpor interface dari file Index
+=======
+import { type Transaction } from './index'; // Mengimpor interface dari file Index
+>>>>>>> 2fc60e6 (fix form description)
 
 // --- INTERFACES ---
 interface Props {
@@ -32,7 +36,11 @@ type FormData = {
     tags: number[]; // Diubah untuk menampung banyak ID tag
     amount: string;
     type: 'income' | 'outcome' | 'transfer' | string;
+<<<<<<< HEAD
     description: string;
+=======
+    description: string | null;
+>>>>>>> 2fc60e6 (fix form description)
     transaction_date: string;
 };
 
@@ -57,7 +65,11 @@ export default function TransactionFormModal({
         tags: [], // Nilai awal adalah array kosong
         amount: '',
         type: defaultType,
+<<<<<<< HEAD
         description: '',
+=======
+        description: null,
+>>>>>>> 2fc60e6 (fix form description)
         transaction_date: new Date().toISOString().slice(0, 10),
     });
 
@@ -121,7 +133,11 @@ export default function TransactionFormModal({
                         {data.id ? 'Edit' : 'Add'} {data.type.charAt(0).toUpperCase() + data.type.slice(1)}
                     </DialogTitle>
                 </DialogHeader>
+<<<<<<< HEAD
                 <form onSubmit={handleSubmit} className="mt-2 space-y-4">
+=======
+                <form onSubmit={handleSubmit} noValidate className="mt-2 space-y-4">
+>>>>>>> 2fc60e6 (fix form description)
                     <InputField
                         label="Title"
                         type="text"
@@ -170,7 +186,11 @@ export default function TransactionFormModal({
                         id="description"
                         type="text"
                         value={data.description}
+<<<<<<< HEAD
                         onChange={(e) => setData('description', e.target.value)}
+=======
+                        onChange={(e) => setData('description', e.target.value || null)}
+>>>>>>> 2fc60e6 (fix form description)
                     />
 
                     <div className="flex items-end gap-2">
