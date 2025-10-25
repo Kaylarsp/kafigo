@@ -52,6 +52,9 @@ class DashboardController extends Controller
             'totalBalance' => $totalBalance,
             'income' => $income,
             'outcome' => $outcome,
+            'user' => [
+                'name' => $user->name,
+            ],
         ]);
     }
 }
